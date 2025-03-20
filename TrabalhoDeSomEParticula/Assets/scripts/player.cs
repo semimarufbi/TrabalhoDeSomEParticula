@@ -5,18 +5,19 @@ public class player : MonoBehaviour
     private float inputHorizontal;
     private Rigidbody2D rb;
     [SerializeField] private int velocidade = 5;
-    [SerializeField] Animator animacao;
+    [SerializeField] private Animator animacao;
     public SpriteRenderer sprite;
-    public AudioSource som;
+
+    public AudioSource audioSource;
+    public AudioClip somAndando;  // Som ao andar
+    public AudioClip somPulo;  // Som ao pular
+    public AudioClip somDoubleJump;  // Som ao fazer double jump
+
     private bool isJumping = false;  // Controla o primeiro pulo
     private bool canDoubleJump = false;  // Permite o segundo pulo (double jump)
     private int numberOfJumps = 0;  // Conta o número de pulos (1 para o primeiro pulo, 2 para o double jump)
-    public AudioClip outroAudio;
 
-    // Força do pulo
     [SerializeField] private float jumpForce = 300f;
-
-
 
     private void Awake()
     {
@@ -25,11 +26,9 @@ public class player : MonoBehaviour
 
     private void Start()
     {
-
-
-
         animacao = GetComponent<Animator>();
         sprite = GetComponent<SpriteRenderer>();
+        audioSource = GetComponent<AudioSource>();  // Obtém o componente de áudio
     }
 
     private void Update()
@@ -37,44 +36,55 @@ public class player : MonoBehaviour
         // Captura o movimento horizontal do jogador
         inputHorizontal = Input.GetAxis("Horizontal");
 
-        // Chama a função para flipar o sprite (mudar direção)
+        // Chama a função para inverter o sprite
         spriteFlip(inputHorizontal);
 
-        // Lógica para pulo (aciona a animação de pulo)
+        // Lógica para pulo
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            
-
             if (!isJumping)  // Primeiro pulo
             {
-                // Realiza o primeiro pulo
                 rb.AddForce(Vector2.up * jumpForce);
-                animacao.SetTrigger("pulo"); // Animação de pulo
-                isJumping = true; // O jogador está no ar
-                numberOfJumps = 1; // Um pulo foi realizado
-            }
-            else if (canDoubleJump)  // Segundo pulo (Double Jump)
-            {
-                // Realiza o double jump
-                rb.velocity = new Vector2(rb.velocity.x, 0);  // Zera a velocidade vertical para pular corretamente
-                rb.AddForce(Vector2.up * jumpForce);
-                animacao.SetTrigger("puloduplo"); // Animação de pulo
-                numberOfJumps = 2;  // Double jump foi realizado
-                canDoubleJump = false; // Desativa o double jump até o jogador tocar o solo novamente
-            }
+                animacao.SetTrigger("pulo");
+                isJumping = true;
+                numberOfJumps = 1;
 
+                audioSource.PlayOneShot(somPulo);  // Toca som do pulo
+            }
+            else if (canDoubleJump)  // Double Jump
+            {
+                rb.velocity = new Vector2(rb.velocity.x, 0);
+                rb.AddForce(Vector2.up * jumpForce);
+                animacao.SetTrigger("double");
+                numberOfJumps = 2;
+                canDoubleJump = false;
+
+                audioSource.PlayOneShot(somDoubleJump);  // Toca som do double jump
+            }
         }
 
-        // Se o jogador está se movendo (andando) e não está pulando, ativa a animação de andar
+        // Se o jogador está andando e não está pulando, ativa a animação de andar
         if (inputHorizontal != 0 && !isJumping)
         {
             animacao.SetBool("andando", true);
+
+            // Se o som não está tocando, toca o som de andar
+            if (!audioSource.isPlaying)
+            {
+                audioSource.clip = somAndando;
+                audioSource.Play();
+            }
         }
         else if (!isJumping)
         {
-            animacao.SetBool("andando", false); // Se não estiver se movendo e não estiver pulando, desativa a animação de andar
-        }
+            animacao.SetBool("andando", false);
 
+            // Para o som de andar quando o jogador parar
+            if (audioSource.clip == somAndando)
+            {
+                audioSource.Stop();
+            }
+        }
     }
 
     private void FixedUpdate()
@@ -83,21 +93,26 @@ public class player : MonoBehaviour
         rb.velocity = new Vector2(inputHorizontal * velocidade, rb.velocity.y);
     }
 
-    // Função para flipar o sprite dependendo do movimento horizontal
+    // Função para inverter o sprite dependendo do movimento horizontal
     public void spriteFlip(float horizontal)
     {
         if (horizontal < 0)
         {
-            sprite.flipX = true; // Flip para a esquerda
+            sprite.flipX = true;
         }
         else if (horizontal > 0)
         {
-            sprite.flipX = false; // Flip para a direita
+            sprite.flipX = false;
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        // Verifica se tocou o chão
+        if (collision.gameObject.CompareTag("Ground"))
+        {
+            isJumping = false;
+            canDoubleJump = true;
         }
     }
 }
-
-   
-
-   
-   
