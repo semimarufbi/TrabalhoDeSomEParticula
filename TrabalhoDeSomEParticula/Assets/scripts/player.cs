@@ -60,6 +60,9 @@ public class player : MonoBehaviour
                 canDoubleJump = false;
 
                 audioSource.PlayOneShot(somDoubleJump);  // Toca som do double jump
+
+                animacao
+                    .SetTrigger("caindo");
             }
         }
 
